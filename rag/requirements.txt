@@ -1,0 +1,26 @@
+# ── Embedding (local, no API key) ─────────────────────────────────────────────
+sentence-transformers>=2.7.0
+numpy>=1.26.0
+
+# ── Reranking ─────────────────────────────────────────────────────────────────
+cohere>=5.0.0
+
+# ── LLM ───────────────────────────────────────────────────────────────────────
+openai>=1.30.0
+
+# ── FinBERT sentiment ─────────────────────────────────────────────────────────
+transformers>=4.40.0
+torch>=2.2.0
+
+# ── Data collection ───────────────────────────────────────────────────────────
+requests>=2.31.0
+feedparser>=6.0.10
+newspaper3k>=0.2.8
+lxml_html_clean
+
+# ── Text processing ───────────────────────────────────────────────────────────
+nltk>=3.8.1
+spacy>=3.7.0
+# After install: python -m spacy download en_core_web_sm
+
+python-dateutil>=2.9.0
