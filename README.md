@@ -85,6 +85,19 @@ print(result)
 
 To run the project locally, users should first clone the repository from GitHub and navigate into the project directory. After that, all required dependencies can be installed using the provided requirements file. The system relies on several external APIs, so users need to configure their API keys before execution. Specifically, the OpenAI API key, NewsAPI key, and Cohere API key should be added to the `config/settings.py` file. Once the environment is properly configured, the pipeline can be executed by running the main script, which will trigger the full workflow from data collection to final response generation.
 
+## Quick start
+
+```bash
+pip install -r requirements.txt
+python -m spacy download en_core_web_sm
+
+export NEWSAPI_KEY="..."
+export COHERE_API_KEY="..."
+export OPENAI_API_KEY="..."
+
+python main.py --query "What is happening with Meta lately?"
+```
+
 ---
 
 ## Implemented Features vs. Planned Features
