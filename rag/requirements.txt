@@ -24,3 +24,7 @@ spacy>=3.7.0
 # After install: python -m spacy download en_core_web_sm
 
 python-dateutil>=2.9.0
+
+# ── Web server ────────────────────────────────────────────────────────────────
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0
