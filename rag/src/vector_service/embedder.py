@@ -1,6 +1,21 @@
 """
 src/vector_service/embedder.py
 ================================
+
+External Libraries & Models:
+1. Sentence-Transformers (https://www.sbert.net/)
+   - Library : sentence-transformers
+   - Purpose : High-level interface for text embedding models
+
+2. HuggingFace Model Hub (https://huggingface.co/)
+   - Model   : Configurable via settings.EMBEDDING_MODEL_ID
+   - Example : BAAI/bge-small-en-v1.5
+   - Purpose : Generate dense vector embeddings for retrieval
+
+3. PyTorch (https://pytorch.org/)
+   - Library : torch
+   - Purpose : Backend for model inference + device detection
+
 Local embedding using sentence-transformers (Hugging Face).
 
 No OpenAI key required.  Model is downloaded once and cached by
