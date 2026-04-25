@@ -105,12 +105,27 @@ def _get_nlp():
 
 def detect_company(question: str) -> str:
     """Extract primary company/entity name from a free-text question."""
+
+    _TRAILING_NOISE = {
+        "ai", "inc", "corp", "ltd", "llc", "group", "holdings",
+        "platforms", "technologies", "tech", "stock", "shares",
+        "news", "chip", "chips", "demand", "earnings", "revenue",
+        "report", "results",
+    }
+
+    def _clean_org(name: str) -> str:
+        """Drop trailing generic tokens from a spaCy ORG entity string."""
+        tokens = name.split()
+        while len(tokens) > 1 and tokens[-1].lower().rstrip(".") in _TRAILING_NOISE:
+            tokens.pop()
+        return " ".join(tokens)
+
     try:
         nlp = _get_nlp()
         doc = nlp(question)
         orgs = [ent.text for ent in doc.ents if ent.label_ == "ORG"]
         if orgs:
-            return orgs[0]
+            return _clean_org(orgs[0])
     except Exception:
         pass  # fall through to heuristic
 
