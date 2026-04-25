@@ -1,6 +1,39 @@
 """
 src/data_engine/collector.py
 =============================
+
+External Libraries & APIs:
+1. NewsAPI (https://newsapi.org/)
+   - Type    : External REST API
+   - Purpose : Fetch news article metadata (title, source, publish time, URL)
+   - Usage   : _fetch_newsapi()
+   - Auth    : Requires API key (settings.NEWSAPI_KEY)
+
+2. RSS Feeds (via feedparser)
+   - Library : feedparser (https://pypi.org/project/feedparser/)
+   - Purpose : Parse RSS feeds as alternative news source
+   - Usage   : _fetch_rss()
+
+3. newspaper3k
+   - Library : newspaper3k (https://github.com/codelucas/newspaper)
+   - Purpose : Extract full article text from web pages
+   - Usage   : _scrape_article()
+   - Fallback: If unavailable → use requests + regex HTML stripping
+
+4. requests
+   - Library : requests (https://docs.python-requests.org/)
+   - Purpose : HTTP requests for:
+       * NewsAPI calls
+       * Web scraping fallback
+
+5. spaCy
+   - Library : spacy (https://spacy.io/)
+   - Model   : en_core_web_sm
+   - Purpose : Named Entity Recognition (NER) for company extraction
+   - Usage   : detect_company()
+   - Fallback: Heuristic rule-based extraction
+
+
 JIT news collection:
   1. Parse user query → company + days_back
   2. Fetch article metadata from NewsAPI and RSS feeds (concurrently)
