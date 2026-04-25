@@ -25,7 +25,7 @@ flowchart TD
 
 ---
 
-## Pipeline Structure
+## Pipeline
 
 ```
 User Query
