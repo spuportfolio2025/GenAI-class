@@ -27,67 +27,48 @@ flowchart TD
 
 ## Pipeline Structure
 
-### 1. Preprocessing (`clean_preprocessing.py`)
-- Fetch news data (NewsAPI)
-- Clean and filter articles
-- Chunk text into smaller pieces
-- Output:
-  - `df_news`
-  - `df_chunks`
-  - metadata
-
----
-
-### 2. RAG Pipeline (`rag_pipeline.py`)
-- Convert dataframe → articles
-- Index articles into vector store
-- Retrieve relevant content
-- Generate answer using LLM
-- Perform sentiment analysis
-
----
-
-### 3. Full Pipeline Example
-
-```python
-from clean_preprocessing import run_preprocessing
-from rag_pipeline import (
-    dataframe_to_articles,
-    index_articles,
-    rag_query_with_sentiment
-)
-
-# Step 1: preprocessing
-outputs = run_preprocessing(
-    question="What is happening with Meta lately?",
-    ticker="META",
-    include_edgar=False
-)
-
-df_news = outputs["df_news"]
-
-# Step 2: convert
-articles = dataframe_to_articles(df_news)
-
-# Step 3: index
-index_articles(articles)
-
-# Step 4: query
-result = rag_query_with_sentiment(
-    "What is happening with Meta lately?"
-)
-
-print(result)
 ```
+User Query
+   │
+   ├─ 1. Collect    NewsAPI + RSS feeds → newspaper3k full-text scraping
+   ├─ 2. Clean      Boilerplate removal + NLTK sentence chunking
+   ├─ 3. Retrieve   SentenceTransformer embed → numpy cosine similarity → top 20
+   ├─ 4. Rerank     Cohere rerank-english-v3.0 → top 5
+   ├─ 5. Generate   OpenAI gpt-4o-mini answer
+   └─ 6. Sentiment  FinBERT weighted by rerank score
+```
+
+## Project structure
+
+```
+rag/
+├── config/
+│   └── settings.py                 ← all API keys + tuneable params
+├── src/
+│   ├── data_engine/
+│   │   ├── collector.py            ← JIT fetch: query parsing, NewsAPI, RSS, scraping
+│   │   └── cleaner.py              ← text cleaning + sentence chunking
+│   ├── vector_service/
+│   │   ├── embedder.py             ← SentenceTransformer (BAAI/bge-small-en-v1.5)
+│   │   └── retriever.py            ← in-memory numpy cosine similarity
+│   └── rag/
+│       ├── reranker.py             ← Cohere rerank
+│       ├── generator.py            ← OpenAI GPT answer
+│       └── sentiment.py            ← FinBERT sentiment scoring
+├── main.py
+└── requirements.txt
+```
+
 ---
 
 ## Setup and Execution Instructions
 
-To run the project locally, users should first clone the repository from GitHub and navigate into the project directory. After that, all required dependencies can be installed using the provided requirements file. The system relies on several external APIs, so users need to configure their API keys before execution. Specifically, the OpenAI API key, NewsAPI key, and Cohere API key should be added to the `config/settings.py` file. Once the environment is properly configured, the pipeline can be executed by running the main script, which will trigger the full workflow from data collection to final response generation.
+To run the project locally, users should first clone the repository from GitHub and navigate into the project directory. After that, all required dependencies can be installed using the provided requirements file. The system relies on several external APIs, so users need to configure their API keys before execution. Specifically, the OpenAI API key, NewsAPI key, and Cohere API key should be added to the `rag/config/settings.py` file or set as an environment variable. Once the environment is properly configured, the pipeline can be executed by running the main script, which will trigger the full workflow from data collection to final response generation.
 
 ## Quick start
 
 ```bash
+cd rag
 pip install -r requirements.txt
 python -m spacy download en_core_web_sm
 
