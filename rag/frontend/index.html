@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FinRAG · Financial News Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,300&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+/* ── Reset & tokens ───────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #080c10;
+  --surface:   #0d1117;
+  --panel:     #111820;
+  --border:    #1e2d3d;
+  --border2:   #243447;
+  --accent:    #00d4ff;
+  --accent2:   #0088aa;
+  --green:     #39d353;
+  --amber:     #f0b429;
+  --red:       #ff4d4f;
+  --teal:      #00b4a0;
+  --muted:     #4a6070;
+  --text:      #c9d8e8;
+  --text-dim:  #6b8499;
+  --text-bright: #e8f4ff;
+  --mono:      'IBM Plex Mono', monospace;
+  --sans:      'IBM Plex Sans', sans-serif;
+  --radius:    4px;
+  --glow:      0 0 20px rgba(0,212,255,.12);
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.6;
+  overflow: hidden;
+}
+
+/* ── Scanline overlay ──────────────────────────────────────────────── */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,212,255,.012) 2px,
+    rgba(0,212,255,.012) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ── Layout ─────────────────────────────────────────────────────────── */
+#app {
+  display: grid;
+  grid-template-rows: 44px 1fr 72px;
+  grid-template-columns: 260px 1fr 300px;
+  height: 100vh;
+  gap: 0;
+}
+
+/* ── Header ─────────────────────────────────────────────────────────── */
+header {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.logo {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.logo span { color: var(--text-dim); font-weight: 300; }
+
+.header-sep { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
+
+.status-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0%,100% { opacity: 1; }
+  50%      { opacity: .4; }
+}
+.status-label { font-size: 10px; color: var(--text-dim); letter-spacing: .08em; }
+
+.header-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+.header-tag {
+  font-size: 9px; letter-spacing: .14em; text-transform: uppercase;
+  padding: 2px 8px; border: 1px solid var(--border2);
+  color: var(--text-dim); border-radius: var(--radius);
+}
+
+/* ── Left sidebar ──────────────────────────────────────────────────── */
+#sidebar {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  padding: 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+#sidebar::-webkit-scrollbar { width: 4px; }
+#sidebar::-webkit-scrollbar-track { background: transparent; }
+#sidebar::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+.sidebar-section-title {
+  font-size: 9px; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--muted); padding: 0 16px 8px;
+}
+
+.history-item {
+  padding: 8px 16px;
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  transition: all .15s;
+  font-size: 11px;
+  color: var(--text-dim);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.history-item:hover { background: var(--panel); color: var(--text); border-left-color: var(--border2); }
+.history-item.active { background: var(--panel); color: var(--accent); border-left-color: var(--accent); }
+.history-item .hi-date { font-size: 9px; color: var(--muted); margin-top: 2px; display: block; }
+
+.sidebar-divider { height: 1px; background: var(--border); margin: 12px 0; }
+
+.example-btn {
+  margin: 3px 12px;
+  padding: 7px 10px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: all .15s;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.example-btn:hover { border-color: var(--accent2); color: var(--accent); background: rgba(0,212,255,.05); }
+.example-btn::before { content: '» '; color: var(--muted); }
+
+/* ── Main chat area ─────────────────────────────────────────────────── */
+#main {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+#chat {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+#chat::-webkit-scrollbar { width: 4px; }
+#chat::-webkit-scrollbar-track { background: transparent; }
+#chat::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* ── Empty state ─────────────────────────────────────────────────────── */
+#empty-state {
+  margin: auto;
+  text-align: center;
+  opacity: .5;
+  max-width: 380px;
+}
+.empty-ascii {
+  font-size: 11px; color: var(--accent2); line-height: 1.3;
+  margin-bottom: 20px; letter-spacing: .05em;
+}
+.empty-title {
+  font-family: var(--sans); font-size: 16px; font-weight: 300;
+  color: var(--text); margin-bottom: 8px;
+}
+.empty-sub { font-size: 11px; color: var(--text-dim); }
+
+/* ── Message bubbles ─────────────────────────────────────────────────── */
+.msg { display: flex; flex-direction: column; gap: 4px; animation: fadeUp .25s ease both; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+.msg-user {
+  align-self: flex-end;
+  max-width: 70%;
+}
+.msg-user .bubble {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  color: var(--text-bright);
+}
+.msg-user .bubble::before {
+  content: '> ';
+  color: var(--accent);
+  font-weight: 500;
+}
+.msg-user .ts { font-size: 9px; color: var(--muted); text-align: right; margin-top: 3px; }
+
+.msg-system { align-self: stretch; }
+
+/* ── Pipeline trace ──────────────────────────────────────────────────── */
+.pipeline {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.pipeline-header {
+  padding: 8px 14px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--muted);
+  display: flex; align-items: center; gap: 8px;
+}
+.pipeline-header .ph-title { color: var(--text-dim); }
+
+.step-list { padding: 4px 0; }
+
+.step {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 14px;
+  border-bottom: 1px solid rgba(30,45,61,.6);
+  transition: background .2s;
+  cursor: default;
+}
+.step:last-child { border-bottom: none; }
+.step:hover { background: rgba(0,212,255,.03); }
+
+.step-num {
+  font-size: 9px; font-weight: 600;
+  color: var(--muted); letter-spacing: .06em;
+  text-align: center;
+}
+
+.step-body { min-width: 0; }
+.step-label { font-size: 11px; font-weight: 500; color: var(--text); }
+.step-detail {
+  font-size: 10px; color: var(--text-dim);
+  margin-top: 1px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.step-status {
+  font-size: 9px; display: flex; align-items: center; gap: 5px;
+  white-space: nowrap;
+}
+
+.spin {
+  width: 12px; height: 12px;
+  border: 1px solid var(--border2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.step-tick { color: var(--green); font-size: 11px; }
+.step-time { color: var(--muted); font-size: 9px; }
+
+/* expandable step detail panels */
+.step-expand {
+  grid-column: 1 / -1;
+  padding: 0 14px 8px 52px;
+  display: none;
+}
+.step-expand.open { display: block; }
+
+/* articles list in step 1 */
+.article-list { display: flex; flex-direction: column; gap: 3px; margin-top: 4px; }
+.article-row {
+  display: flex; gap: 8px; align-items: baseline;
+  font-size: 10px; color: var(--text-dim);
+  padding: 3px 0;
+  border-bottom: 1px solid rgba(30,45,61,.5);
+}
+.article-row:last-child { border-bottom: none; }
+.ar-source { color: var(--accent2); min-width: 80px; font-weight: 500; }
+.ar-date   { color: var(--muted); min-width: 42px; }
+.ar-title  { color: var(--text); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* chunk cards in step 4 */
+.chunk-list { display: flex; flex-direction: column; gap: 5px; margin-top: 6px; }
+.chunk-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+}
+.chunk-meta {
+  display: flex; gap: 10px; align-items: center;
+  font-size: 9px; color: var(--muted); margin-bottom: 4px;
+}
+.chunk-rank {
+  background: var(--border2); border-radius: 2px;
+  padding: 0 5px; color: var(--text-dim); font-weight: 600;
+}
+.chunk-score { color: var(--accent); font-weight: 500; }
+.chunk-src   { color: var(--teal); }
+.chunk-date  { margin-left: auto; }
+.chunk-title { font-size: 10px; font-weight: 500; color: var(--text); margin-bottom: 3px; }
+.chunk-snip  { font-size: 9px; color: var(--text-dim); font-style: italic; line-height: 1.5; }
+
+/* sentiment bar in step 6 */
+.sent-bars { margin-top: 8px; display: flex; flex-direction: column; gap: 5px; }
+.sent-row  { display: flex; align-items: center; gap: 8px; }
+.sent-label { font-size: 9px; width: 54px; text-align: right; }
+.sent-track {
+  flex: 1; height: 6px; background: var(--panel);
+  border-radius: 3px; overflow: hidden; border: 1px solid var(--border);
+}
+.sent-fill { height: 100%; border-radius: 3px; transition: width 1s ease; }
+.sent-pct  { font-size: 9px; width: 34px; }
+.sent-positive .sent-fill { background: var(--green); }
+.sent-positive .sent-label, .sent-positive .sent-pct { color: var(--green); }
+.sent-negative .sent-fill { background: var(--red); }
+.sent-negative .sent-label, .sent-negative .sent-pct { color: var(--red); }
+.sent-neutral  .sent-fill { background: var(--amber); }
+.sent-neutral  .sent-label, .sent-neutral  .sent-pct { color: var(--amber); }
+
+/* ── Answer block ───────────────────────────────────────────────────── */
+.answer-block {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  overflow: hidden;
+  animation: fadeUp .3s ease both;
+}
+.answer-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 14px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+}
+.answer-header-left { display: flex; align-items: center; gap: 8px; }
+.answer-model  { font-size: 9px; color: var(--accent2); letter-spacing: .1em; }
+.answer-sent-badge {
+  font-size: 9px; font-weight: 600; padding: 1px 7px;
+  border-radius: 2px; letter-spacing: .08em; text-transform: uppercase;
+}
+.sent-badge-positive { background: rgba(57,211,83,.15); color: var(--green); }
+.sent-badge-negative { background: rgba(255,77,79,.15); color: var(--red); }
+.sent-badge-neutral  { background: rgba(240,180,41,.15); color: var(--amber); }
+
+.answer-body {
+  padding: 14px 16px;
+  font-family: var(--sans);
+  font-size: 13px;
+  color: var(--text-bright);
+  line-height: 1.75;
+  white-space: pre-wrap;
+}
+
+.sources-toggle {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 14px;
+  font-size: 10px; color: var(--muted);
+  cursor: pointer;
+  border-top: 1px solid var(--border);
+  user-select: none;
+  transition: color .15s;
+}
+.sources-toggle:hover { color: var(--text); }
+.sources-toggle .toggle-arrow { transition: transform .2s; }
+.sources-toggle.open .toggle-arrow { transform: rotate(90deg); }
+
+.sources-list {
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 14px 10px;
+}
+.sources-list.open { display: flex; }
+.source-item {
+  display: flex; align-items: baseline; gap: 8px;
+  font-size: 10px; padding: 4px 0;
+  border-bottom: 1px solid rgba(30,45,61,.5);
+}
+.source-item:last-child { border-bottom: none; }
+.si-rank  { color: var(--muted); width: 16px; flex-shrink: 0; }
+.si-score { color: var(--accent); font-weight: 500; min-width: 44px; }
+.si-source { color: var(--teal); min-width: 80px; }
+.si-date  { color: var(--muted); min-width: 70px; }
+.si-title { color: var(--text); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.si-link  { color: var(--accent2); flex-shrink: 0; text-decoration: none; }
+.si-link:hover { color: var(--accent); }
+
+/* ── Right panel ─────────────────────────────────────────────────────── */
+#right-panel {
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.rp-header {
+  padding: 10px 16px;
+  font-size: 9px; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+}
+.rp-content {
+  flex: 1; overflow-y: auto;
+  padding: 12px 14px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.rp-content::-webkit-scrollbar { width: 3px; }
+.rp-content::-webkit-scrollbar-thumb { background: var(--border2); }
+
+.metric-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+}
+.mc-label { font-size: 9px; color: var(--muted); letter-spacing: .1em; margin-bottom: 4px; }
+.mc-value { font-size: 20px; font-weight: 600; color: var(--accent); line-height: 1; }
+.mc-sub   { font-size: 9px; color: var(--text-dim); margin-top: 3px; }
+
+.mini-pipeline {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.mp-title {
+  font-size: 9px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--muted); padding: 7px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.mp-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 10px;
+  border-bottom: 1px solid rgba(30,45,61,.4);
+  font-size: 10px;
+  opacity: .35;
+  transition: opacity .3s;
+}
+.mp-row:last-child { border-bottom: none; }
+.mp-row.active { opacity: 1; }
+.mp-row.done   { opacity: .7; }
+.mp-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
+.mp-row.active .mp-dot { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+.mp-row.done   .mp-dot { background: var(--green); }
+.mp-name { flex: 1; color: var(--text-dim); }
+.mp-row.active .mp-name { color: var(--text); }
+.mp-timing { font-size: 9px; color: var(--muted); }
+
+/* ── Input bar ───────────────────────────────────────────────────────── */
+#input-bar {
+  grid-column: 1 / -1;
+  display: flex; align-items: center; gap: 0;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: 12px 20px;
+  gap: 12px;
+}
+
+.prompt-symbol {
+  font-size: 14px; font-weight: 600;
+  color: var(--accent); flex-shrink: 0;
+  user-select: none;
+}
+
+#query-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text-bright);
+  caret-color: var(--accent);
+}
+#query-input::placeholder { color: var(--muted); }
+
+#send-btn {
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius);
+  padding: 6px 16px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--bg);
+  cursor: pointer;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  transition: all .15s;
+  flex-shrink: 0;
+}
+#send-btn:hover { background: #33deff; box-shadow: 0 0 12px rgba(0,212,255,.4); }
+#send-btn:disabled { opacity: .35; cursor: not-allowed; box-shadow: none; background: var(--accent); }
+
+#status-bar {
+  font-size: 10px; color: var(--muted);
+  min-width: 180px; text-align: right;
+  white-space: nowrap;
+}
+
+/* ── Scrollbar ───────────────────────────────────────────────────────── */
+* { scrollbar-width: thin; scrollbar-color: var(--border2) transparent; }
+
+/* ── Responsive tweak ───────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  #app { grid-template-columns: 0 1fr 0; }
+  #sidebar, #right-panel { display: none; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- Header -->
+  <header>
+    <span class="logo">Fin<span>RAG</span></span>
+    <div class="header-sep"></div>
+    <div class="status-dot" id="status-dot"></div>
+    <span class="status-label" id="status-label">READY</span>
+    <div class="header-right">
+      <span class="header-tag">BGE-SMALL · COHERE · GPT-4o-mini · FINBERT</span>
+    </div>
+  </header>
+
+  <!-- Left sidebar -->
+  <aside id="sidebar">
+    <div class="sidebar-section-title">Examples</div>
+    <button class="example-btn" onclick="setQuery(this)">What is happening with Meta lately?</button>
+    <button class="example-btn" onclick="setQuery(this)">Apple latest earnings report</button>
+    <button class="example-btn" onclick="setQuery(this)">Nvidia AI chip demand this week</button>
+    <button class="example-btn" onclick="setQuery(this)">Federal Reserve interest rate decision</button>
+    <button class="example-btn" onclick="setQuery(this)">Tesla recent news</button>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section-title">History</div>
+    <div id="history-list"></div>
+  </aside>
+
+  <!-- Main chat -->
+  <main id="main">
+    <div id="chat">
+      <div id="empty-state">
+        <pre class="empty-ascii">┌─────────────────────────┐
+│  FINANCIAL NEWS  RAG    │
+│  ══════════════════════ │
+│  query → collect        │
+│       → embed           │
+│       → rerank          │
+│       → generate        │
+│       → sentiment       │
+└─────────────────────────┘</pre>
+        <div class="empty-title">Ask anything about financial news</div>
+        <div class="empty-sub">Pipeline runs in real-time · sources cited · FinBERT sentiment</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Right panel -->
+  <aside id="right-panel">
+    <div class="rp-header">Live metrics</div>
+    <div class="rp-content" id="rp-content">
+
+      <div class="metric-card" id="mc-articles">
+        <div class="mc-label">ARTICLES SCRAPED</div>
+        <div class="mc-value" id="mc-articles-val">—</div>
+        <div class="mc-sub" id="mc-articles-sub">waiting for query</div>
+      </div>
+
+      <div class="metric-card" id="mc-chunks">
+        <div class="mc-label">CHUNKS GENERATED</div>
+        <div class="mc-value" id="mc-chunks-val">—</div>
+        <div class="mc-sub" id="mc-chunks-sub">avg token count</div>
+      </div>
+
+      <div class="metric-card" id="mc-latency">
+        <div class="mc-label">TOTAL LATENCY</div>
+        <div class="mc-value" id="mc-latency-val">—</div>
+        <div class="mc-sub">end-to-end</div>
+      </div>
+
+      <div class="mini-pipeline" id="mini-pipeline">
+        <div class="mp-title">Pipeline</div>
+        <div class="mp-row" id="mp-1"><div class="mp-dot"></div><div class="mp-name">Collect</div><div class="mp-timing" id="mp-t1"></div></div>
+        <div class="mp-row" id="mp-2"><div class="mp-dot"></div><div class="mp-name">Clean</div><div class="mp-timing" id="mp-t2"></div></div>
+        <div class="mp-row" id="mp-3"><div class="mp-dot"></div><div class="mp-name">Embed + Retrieve</div><div class="mp-timing" id="mp-t3"></div></div>
+        <div class="mp-row" id="mp-4"><div class="mp-dot"></div><div class="mp-name">Rerank</div><div class="mp-timing" id="mp-t4"></div></div>
+        <div class="mp-row" id="mp-5"><div class="mp-dot"></div><div class="mp-name">Generate</div><div class="mp-timing" id="mp-t5"></div></div>
+        <div class="mp-row" id="mp-6"><div class="mp-dot"></div><div class="mp-name">FinBERT</div><div class="mp-timing" id="mp-t6"></div></div>
+      </div>
+
+    </div>
+  </aside>
+
+  <!-- Input bar -->
+  <div id="input-bar">
+    <span class="prompt-symbol">$</span>
+    <input id="query-input" type="text" placeholder="ask about any company or financial topic…" autocomplete="off" />
+    <span id="status-bar">ready</span>
+    <button id="send-btn" onclick="sendQuery()">Run →</button>
+  </div>
+
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+const API_URL    = 'http://localhost:8000/query';
+let   isRunning  = false;
+let   startTime  = 0;
+let   timerInterval = null;
+const history    = [];
+// Holds a direct reference to the *current* query's step-list node.
+// Using a reference instead of getElementById avoids the duplicate-id
+// bug that caused steps to render into the first query's pipeline box
+// on every subsequent query.
+let   currentStepList = null;
+
+// ── DOM refs ───────────────────────────────────────────────────────────────
+const chatEl    = document.getElementById('chat');
+const inputEl   = document.getElementById('query-input');
+const sendBtn   = document.getElementById('send-btn');
+const statusBar = document.getElementById('status-bar');
+const statusDot = document.getElementById('status-dot');
+const statusLbl = document.getElementById('status-label');
+const histList  = document.getElementById('history-list');
+const emptyEl   = document.getElementById('empty-state');
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+const now = () => new Date().toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false});
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+function setQuery(btn) {
+  inputEl.value = btn.textContent;
+  inputEl.focus();
+}
+
+function setStatus(label, color) {
+  statusLbl.textContent = label;
+  statusDot.style.background = color;
+  statusDot.style.boxShadow  = `0 0 6px ${color}`;
+}
+
+function setRunning(v) {
+  isRunning  = v;
+  sendBtn.disabled = v;
+  inputEl.disabled = v;
+  if (v) {
+    setStatus('RUNNING', 'var(--amber)');
+    startTime = Date.now();
+    timerInterval = setInterval(() => {
+      statusBar.textContent = `${((Date.now() - startTime) / 1000).toFixed(1)}s`;
+    }, 100);
+  } else {
+    clearInterval(timerInterval);
+    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+    document.getElementById('mc-latency-val').textContent = elapsed + 's';
+    statusBar.textContent = `done in ${elapsed}s`;
+    setStatus('READY', 'var(--green)');
+  }
+}
+
+function scrollDown() {
+  chatEl.scrollTop = chatEl.scrollHeight;
+}
+
+// ── Add user message ───────────────────────────────────────────────────────
+function addUserMsg(q) {
+  emptyEl && (emptyEl.style.display = 'none');
+  const d = document.createElement('div');
+  d.className = 'msg msg-user';
+  d.innerHTML = `
+    <div class="bubble">${esc(q)}</div>
+    <div class="ts">${now()}</div>
+  `;
+  chatEl.appendChild(d);
+  scrollDown();
+  return d;
+}
+
+// ── Build pipeline trace shell ─────────────────────────────────────────────
+const STEP_NAMES = ['', 'Collect', 'Clean & Chunk', 'Embed + Retrieve', 'Rerank', 'Generate', 'FinBERT Sentiment'];
+
+function addPipelineMsg() {
+  const d = document.createElement('div');
+  d.className = 'msg msg-system';
+  // No id on step-list — we keep a direct JS reference instead
+  const wrapper = document.createElement('div');
+  wrapper.className = 'pipeline';
+  wrapper.innerHTML = `
+    <div class="pipeline-header">
+      <span class="ph-title">pipeline trace</span>
+    </div>
+  `;
+  const stepList = document.createElement('div');
+  stepList.className = 'step-list';
+  wrapper.appendChild(stepList);
+  d.appendChild(wrapper);
+  chatEl.appendChild(d);
+  // Store reference so addStep/stepDone/renderExpand always target THIS query's box
+  currentStepList = stepList;
+  scrollDown();
+  return d;
+}
+
+function addStep(stepNum) {
+  // Use the stored reference — never getElementById so we never hit a stale node
+  const list = currentStepList;
+  if (!list) return;
+  const s = document.createElement('div');
+  s.className = 'step';
+  s.dataset.step = stepNum;
+  s.innerHTML = `
+    <div class="step-num">0${stepNum}</div>
+    <div class="step-body">
+      <div class="step-label">${STEP_NAMES[stepNum]}</div>
+      <div class="step-detail" data-detail="${stepNum}"></div>
+    </div>
+    <div class="step-status" data-status="${stepNum}">
+      <div class="spin"></div>
+    </div>
+  `;
+  const exp = document.createElement('div');
+  exp.className = 'step-expand';
+  exp.dataset.expand = stepNum;
+  list.appendChild(s);
+  list.appendChild(exp);
+  scrollDown();
+  return s;
+}
+
+function _stepEl(selector) {
+  // Query only within the current query's step-list to avoid cross-query matches
+  return currentStepList ? currentStepList.querySelector(selector) : null;
+}
+
+function stepDone(stepNum, stats) {
+  const ss     = _stepEl(`[data-status="${stepNum}"]`);
+  const detail = _stepEl(`[data-detail="${stepNum}"]`);
+  if (ss) ss.innerHTML = `<span class="step-tick">✓</span><span class="step-time">${stats}</span>`;
+  if (detail && stats) detail.textContent = stats;
+  const mpRow = document.getElementById(`mp-${stepNum}`);
+  if (mpRow) { mpRow.classList.remove('active'); mpRow.classList.add('done'); }
+}
+
+function stepActivate(stepNum) {
+  const mpRow = document.getElementById(`mp-${stepNum}`);
+  if (mpRow) mpRow.classList.add('active');
+}
+
+function renderExpand(stepNum, data) {
+  const exp = _stepEl(`[data-expand="${stepNum}"]`);
+  if (!exp) return;
+  let html = '';
+
+  if (stepNum === 1 && data.items?.length) {
+    html = `<div class="article-list">` +
+      data.items.map(a => `
+        <div class="article-row">
+          <span class="ar-source">${esc(a.source.slice(0,18))}</span>
+          <span class="ar-date">${esc(a.date)}</span>
+          <span class="ar-title">${esc(a.title)}</span>
+        </div>`).join('') +
+      `</div>`;
+  }
+
+  if (stepNum === 4 && data.chunks?.length) {
+    html = `<div class="chunk-list">` +
+      data.chunks.map(c => `
+        <div class="chunk-card">
+          <div class="chunk-meta">
+            <span class="chunk-rank">#${c.rank}</span>
+            <span class="chunk-score">${c.score}</span>
+            <span class="chunk-src">${esc(c.source)}</span>
+            <span class="chunk-date">${esc(c.date)}</span>
+          </div>
+          <div class="chunk-title">${esc(c.title)}</div>
+          <div class="chunk-snip">${esc(c.snippet)}</div>
+        </div>`).join('') +
+      `</div>`;
+  }
+
+  if (stepNum === 6 && data.sentiment) {
+    const s = data.sentiment;
+    const pct = v => Math.round(v * 100);
+    html = `
+      <div class="sent-bars">
+        <div class="sent-row sent-positive">
+          <span class="sent-label">positive</span>
+          <div class="sent-track"><div class="sent-fill" style="width:${pct(s.positive)}%"></div></div>
+          <span class="sent-pct">${pct(s.positive)}%</span>
+        </div>
+        <div class="sent-row sent-negative">
+          <span class="sent-label">negative</span>
+          <div class="sent-track"><div class="sent-fill" style="width:${pct(s.negative)}%"></div></div>
+          <span class="sent-pct">${pct(s.negative)}%</span>
+        </div>
+        <div class="sent-row sent-neutral">
+          <span class="sent-label">neutral</span>
+          <div class="sent-track"><div class="sent-fill" style="width:${pct(s.neutral)}%"></div></div>
+          <span class="sent-pct">${pct(s.neutral)}%</span>
+        </div>
+      </div>`;
+  }
+
+  if (html) {
+    exp.innerHTML = html;
+    exp.classList.add('open');
+  }
+}
+
+// ── Render final answer ────────────────────────────────────────────────────
+function addAnswerMsg(data) {
+  const sentClass = `sent-badge-${data.sentiment}`;
+  const d = document.createElement('div');
+  d.className = 'msg msg-system';
+  d.innerHTML = `
+    <div class="answer-block">
+      <div class="answer-header">
+        <div class="answer-header-left">
+          <span class="answer-model">GPT-4o-mini</span>
+          <span class="answer-sent-badge ${sentClass}">${data.sentiment}</span>
+        </div>
+        <span style="font-size:9px;color:var(--muted)">${now()}</span>
+      </div>
+      <div class="answer-body">${esc(data.answer)}</div>
+      <div class="sources-toggle" onclick="toggleSources(this)">
+        <span class="toggle-arrow">▶</span>
+        <span>${data.sources.length} sources cited</span>
+      </div>
+      <div class="sources-list">
+        ${data.sources.map((s,i) => `
+          <div class="source-item">
+            <span class="si-rank">${i+1}.</span>
+            <span class="si-score">[${s.score}]</span>
+            <span class="si-source">${esc(s.source.slice(0,14))}</span>
+            <span class="si-date">${esc(s.date)}</span>
+            <span class="si-title">${esc(s.title)}</span>
+            ${s.url ? `<a class="si-link" href="${esc(s.url)}" target="_blank">↗</a>` : ''}
+          </div>`).join('')}
+      </div>
+    </div>
+  `;
+  chatEl.appendChild(d);
+  scrollDown();
+
+  // update history sidebar
+  history.unshift({q: data.query, ts: now()});
+  renderHistory();
+}
+
+function toggleSources(el) {
+  el.classList.toggle('open');
+  el.nextElementSibling.classList.toggle('open');
+}
+
+// ── History ────────────────────────────────────────────────────────────────
+function renderHistory() {
+  histList.innerHTML = history.slice(0, 15).map((h, i) => `
+    <div class="history-item ${i===0?'active':''}" onclick="setQuery({textContent:'${h.q.replace(/'/g,"\\'")}' })">
+      ${esc(h.q.slice(0, 40))}${h.q.length>40?'…':''}
+      <span class="hi-date">${h.ts}</span>
+    </div>`).join('');
+}
+
+// ── Main query sender ──────────────────────────────────────────────────────
+async function sendQuery() {
+  const q = inputEl.value.trim();
+  if (!q || isRunning) return;
+
+  inputEl.value = '';
+  setRunning(true);
+
+  // reset right panel metrics
+  document.getElementById('mc-articles-val').textContent = '—';
+  document.getElementById('mc-articles-sub').textContent = 'scraping…';
+  document.getElementById('mc-chunks-val').textContent   = '—';
+  document.getElementById('mc-chunks-sub').textContent   = '—';
+  document.getElementById('mc-latency-val').textContent  = '—';
+  // reset mini pipeline
+  for (let i = 1; i <= 6; i++) {
+    const r = document.getElementById(`mp-${i}`);
+    if (r) { r.classList.remove('active','done'); }
+    const t = document.getElementById(`mp-t${i}`);
+    if (t) t.textContent = '';
+  }
+
+  addUserMsg(q);
+  addPipelineMsg();
+
+  const activeSteps = new Set();
+
+  try {
+    const resp = await fetch(API_URL, {
+      method:  'POST',
+      headers: {'Content-Type': 'application/json'},
+      body:    JSON.stringify({query: q}),
+    });
+
+    if (!resp.ok) throw new Error(`Server error: ${resp.status}`);
+
+    const reader  = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let   buffer  = '';
+
+    while (true) {
+      const {done, value} = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, {stream: true});
+      const lines = buffer.split('\n\n');
+      buffer = lines.pop();  // incomplete last chunk
+
+      for (const block of lines) {
+        const eventMatch = block.match(/^event:\s*(\S+)/m);
+        const dataMatch  = block.match(/^data:\s*(.+)$/ms);
+        if (!eventMatch || !dataMatch) continue;
+
+        const event = eventMatch[1];
+        let   data;
+        try { data = JSON.parse(dataMatch[1]); } catch { continue; }
+
+        handleEvent(event, data, activeSteps);
+        scrollDown();
+      }
+    }
+  } catch (err) {
+    const errDiv = document.createElement('div');
+    errDiv.className = 'msg msg-system';
+    errDiv.innerHTML = `<div style="color:var(--red);font-size:11px;padding:8px 14px;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--red);border-radius:var(--radius)">
+      ✗ Error: ${esc(err.message)}<br><span style="color:var(--muted);font-size:10px">Is the server running? uvicorn server:app --reload --port 8000</span>
+    </div>`;
+    chatEl.appendChild(errDiv);
+    scrollDown();
+  }
+
+  setRunning(false);
+}
+
+function handleEvent(event, data, activeSteps) {
+  if (event === 'step_start') {
+    addStep(data.step);
+    stepActivate(data.step);
+    activeSteps.add(data.step);
+  }
+
+  if (event === 'step_detail') {
+    const steps = [...activeSteps];
+    const last  = steps[steps.length - 1];
+    const el    = _stepEl(`[data-detail="${last}"]`);
+    if (el) el.textContent = data.text;
+  }
+
+  if (event === 'step_done') {
+    const n = data.step;
+    // parse timing from stats string
+    const m = (data.stats || '').match(/(\d+\.\d+)s/);
+    const t = m ? m[1] + 's' : '';
+    stepDone(n, data.stats, t);
+    renderExpand(n, data);
+
+    // update right panel metrics
+    if (n === 1 && data.items) {
+      document.getElementById('mc-articles-val').textContent = data.items.length + '+';
+      document.getElementById('mc-articles-sub').textContent = data.stats || '';
+      const tm = document.getElementById(`mp-t1`);
+      if (tm) tm.textContent = t;
+    }
+    if (n === 2) {
+      const cm = data.stats?.match(/(\d+) chunks/);
+      if (cm) document.getElementById('mc-chunks-val').textContent = cm[1];
+      const am = data.stats?.match(/avg (\d+)/);
+      if (am) document.getElementById('mc-chunks-sub').textContent = `avg ${am[1]} tokens`;
+      const tm = document.getElementById(`mp-t2`);
+      if (tm) tm.textContent = t;
+    }
+    if (n >= 3) {
+      const tm = document.getElementById(`mp-t${n}`);
+      if (tm) tm.textContent = t;
+    }
+  }
+
+  if (event === 'result') {
+    addAnswerMsg(data);
+  }
+
+  if (event === 'error') {
+    const errDiv = document.createElement('div');
+    errDiv.style.cssText = 'color:var(--red);font-size:11px;padding:8px 14px;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--red);border-radius:var(--radius)';
+    errDiv.textContent = '✗ ' + data.message;
+    chatEl.appendChild(errDiv);
+  }
+}
+
+// ── Keyboard shortcut ──────────────────────────────────────────────────────
+inputEl.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendQuery(); }
+});
+
+// ── Initial focus ──────────────────────────────────────────────────────────
+inputEl.focus();
+</script>
+</body>
+</html>
