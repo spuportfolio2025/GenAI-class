@@ -1,6 +1,19 @@
 """
 src/rag/reranker.py
 ====================
+
+External Libraries & APIs:
+1. Cohere Rerank API (https://docs.cohere.com/docs/rerank)
+   - Type    : External cross-encoder API
+   - Purpose : Re-rank retrieved text chunks based on query relevance
+   - Model   : Configurable via settings.COHERE_RERANK_MODEL
+   - Usage   : _cohere_rerank()
+   - Auth    : Requires API key (settings.COHERE_API_KEY)
+
+2. cohere Python SDK
+   - Library : cohere
+   - Purpose : Interface for Cohere rerank API
+
 Re-rank retrieved chunks for higher relevance precision.
 
 Strategy
