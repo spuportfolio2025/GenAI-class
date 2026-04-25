@@ -1,8 +1,23 @@
 """
 src/rag/sentiment.py
 =====================
+
+External Libraries & Models:
+1. HuggingFace Transformers (https://huggingface.co/docs/transformers)
+   - Library : transformers
+   - Purpose : Load pretrained NLP models and tokenizers
+
+2. FinBERT Model (https://huggingface.co/ProsusAI/finbert)
+   - Model ID : ProsusAI/finbert
+   - Type     : Pretrained financial sentiment classification model
+   - Labels   : positive / negative / neutral
+   - Usage    : _load_finbert(), _score_texts()
+
+3. PyTorch (https://pytorch.org/)
+   - Library : torch
+   - Purpose : Model inference (forward pass, softmax)
+
 FinBERT sentiment scoring on the top reranked chunks.
-This is a mandatory final step in the pipeline (not optional).
 
 Output
 ------
