@@ -76,7 +76,13 @@ export NEWSAPI_KEY="..."
 export COHERE_API_KEY="..."
 export OPENAI_API_KEY="..."
 
+# 1. Run backend pipeline directly (CLI mode)
+# This executes the RAG pipeline without the web UI
 python main.py --query "What is happening with Meta lately?"
+
+# 2. Start FastAPI server (for frontend interaction)
+# Then open browser to http://localhost:8000
+uvicorn server:app --reload --port 8000
 ```
 
 ---
