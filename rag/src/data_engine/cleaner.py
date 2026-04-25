@@ -59,9 +59,9 @@ _HEADER_NOISE = re.compile(
 
 _EARNINGS_BOILERPLATE = re.compile(
     "|".join([
-        r"(?i)forward.looking statements.{0,2000}",
-        r"(?i)safe harbor.{0,1000}",
-        r"(?i)private securities litigation.{0,500}",
+        r"forward.looking statements.{0,2000}",
+        r"safe harbor.{0,1000}",
+        r"private securities litigation.{0,500}",
     ]),
     re.DOTALL,
 )
