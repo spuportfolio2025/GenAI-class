@@ -3,7 +3,6 @@ src/rag/generator.py
 =====================
 
 External Libraries & APIs:
-
 1. OpenAI API (https://platform.openai.com/)
    - Type    : External LLM API
    - Model   : gpt-4o-mini (configurable via settings.OPENAI_MODEL)
