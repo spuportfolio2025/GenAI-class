@@ -1,7 +1,13 @@
 """
-src/data_engine/cleaner.py #upload this one. 
+src/data_engine/cleaner.py
 ===========================
 Text cleaning and sentence-based chunking.
+
+External Dependencies:
+- NLTK (https://www.nltk.org/)
+  Purpose: Sentence tokenization via pretrained Punkt tokenizer
+  Resource: "punkt"
+  Fallback: Regex-based sentence splitting if NLTK is unavailable
 
 Input : list[CandidateArticle]   (raw_text populated)
 Output: list[dict]               (clean chunks ready for vector store)
