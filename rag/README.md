@@ -33,6 +33,8 @@ fin_rag/
 │       ├── generator.py            ← OpenAI GPT answer
 │       └── sentiment.py            ← FinBERT sentiment scoring
 ├── main.py
+├── rag/
+│   └── logger.py                   ← Logging module: records pipeline execution and debugging info
 └── requirements.txt
 ```
 
