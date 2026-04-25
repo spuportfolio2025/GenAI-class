@@ -1,6 +1,20 @@
 """
 src/rag/generator.py
 =====================
+
+External Libraries & APIs:
+
+1. OpenAI API (https://platform.openai.com/)
+   - Type    : External LLM API
+   - Model   : gpt-4o-mini (configurable via settings.OPENAI_MODEL)
+   - Purpose : Generate grounded natural-language answers from retrieved context
+   - Usage   : generate_answer()
+   - Auth    : Requires API key (settings.OPENAI_API_KEY)
+
+2. openai Python SDK
+   - Library : openai
+   - Purpose : Interface for calling OpenAI chat completion API
+
 LLM answer generation using OpenAI (gpt-4o-mini).
 """
 
