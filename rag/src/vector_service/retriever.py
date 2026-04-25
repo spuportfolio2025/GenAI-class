@@ -1,6 +1,12 @@
 """
 src/vector_service/retriever.py
 ================================
+
+External Libraries & Dependencies:
+1. Local Embedder (src.vector_service.embedder)
+   - Based on sentence-transformers + HuggingFace models
+   - Purpose : Convert text into dense vector embeddings
+
 Pure in-memory similarity search using numpy cosine similarity.
 
 Usage
