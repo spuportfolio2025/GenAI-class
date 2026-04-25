@@ -1,5 +1,5 @@
 """
-src/data_engine/cleaner.py
+src/data_engine/cleaner.py #upload this one. 
 ===========================
 Text cleaning and sentence-based chunking.
 
@@ -59,13 +59,12 @@ _HEADER_NOISE = re.compile(
 
 _EARNINGS_BOILERPLATE = re.compile(
     "|".join([
-        r"(?i)forward.looking statements.{0,2000}",
-        r"(?i)safe harbor.{0,1000}",
-        r"(?i)private securities litigation.{0,500}",
+        r"forward[- ]looking statements.{0,2000}",
+        r"safe harbor.{0,1000}",
+        r"private securities litigation.{0,500}",
     ]),
-    re.DOTALL,
+    flags=re.IGNORECASE | re.DOTALL,
 )
-
 _WHITESPACE = re.compile(r"\s{2,}")
 
 
