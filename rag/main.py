@@ -24,7 +24,6 @@ import json
 import logging
 import sys
 from typing import Any, Dict
-from logger import logger
 
 logging.basicConfig(
     level=logging.INFO,
@@ -48,9 +47,6 @@ def run_pipeline(query: str) -> Dict[str, Any]:
     Run the full RAG pipeline for a single query.
     All intermediate data lives in memory and is discarded after the call.
     """
-    logger.info("===================================")
-    logger.info("RAG Pipeline Started")
-    logger.info(f"User query received: {query}")
     # ------------------------------------------------------------------
     # Step 1: Collect
     # ------------------------------------------------------------------
@@ -95,11 +91,6 @@ def run_pipeline(query: str) -> Dict[str, Any]:
     log.info("=== Step 6: FinBERT sentiment ===")
     sentiment = score_sentiment(top_chunks)
 
-    logger.info("Pipeline completed successfully.")
-    logger.info(f"Number of retrieved candidates: {len(candidates)}")
-    logger.info(f"Number of final reranked chunks: {len(top_chunks)}")
-    logger.info(f"Final sentiment label: {sentiment.get('final_label', 'N/A') if sentiment else 'N/A'}")
-    logger.info("===================================")
     return {
         "query":  query,
         "answer": answer,
@@ -165,7 +156,6 @@ def main():
         print(json.dumps(result, indent=2, ensure_ascii=False))
     else:
         _print_result(result)
-        logger.info("Final result printed to console.")
 
 
 if __name__ == "__main__":
