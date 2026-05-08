@@ -6,7 +6,7 @@ This project implements a query-driven financial news Retrieval-Augmented Genera
 The system collects news from multiple sources, processes and retrieves the most relevant content, and generates natural language responses using a large language model. In addition, it applies domain-specific sentiment analysis (FinBERT) to quantify market sentiment. This allows users to better understand both the information and the underlying tone of financial news.
 
 🎥 **Demo video**: https://drive.google.com/file/d/1ZrIyozsi61ehy0h885td-N7DJ8ElC65_/view?usp=drive_link (accessible with a LionMail account)
-
+ **2ND Demo video can be checked at: https://earningreport-reez926skcwby6f7wnt7jm.streamlit.app/
 ---
 
 ## Architecture Diagram
